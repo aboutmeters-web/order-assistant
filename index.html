@@ -1,0 +1,1254 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>発注アシスタント</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="発注">
+<meta name="theme-color" content="#1e293b">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-180.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root{
+  --bg:#eef2f7; --card:#fff; --ink:#1d2433; --sub:#5b6577; --line:#e2e8f0;
+  --pri:#2563eb; --pri-weak:#e6efff; --ok:#15803d; --ok-weak:#dcfce7;
+  --warn:#c2410c; --warn-weak:#ffedd5; --ng:#dc2626; --ng-weak:#fee2e2;
+  --in:#fff8db; --in-line:#eab308;            /* 入力してほしい欄 */
+  --accent:#2563eb; --accent-weak:#e6efff;     /* タブごとの色(body[data-tab]で切替) */
+  --c-date:#2563eb; --c-date-weak:#eaf1ff;
+  --c-stock:#16a34a; --c-stock-weak:#e8f8ee;
+  --c-truck:#d97706; --c-truck-weak:#fff4e0;
+}
+body[data-tab="order"]{--accent:#2563eb;--accent-weak:#e6efff}
+body[data-tab="sales"]{--accent:#059669;--accent-weak:#dff7ee}
+body[data-tab="items"]{--accent:#ea580c;--accent-weak:#ffedd5}
+body[data-tab="history"]{--accent:#7c3aed;--accent-weak:#efe7ff}
+body[data-tab="settings"]{--accent:#475569;--accent-weak:#eef2f6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Segoe UI","Hiragino Sans","Yu Gothic UI",Meiryo,sans-serif}
+header{background:linear-gradient(90deg,#0f172a,#1e3a5f);color:#fff;padding:10px 16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;box-shadow:0 2px 8px rgba(15,23,42,.25);position:sticky;top:0;z-index:5;border-bottom:4px solid var(--accent)}
+header h1{font-size:20px;margin:0;cursor:pointer;letter-spacing:.02em}
+.home{font:inherit;font-size:14px;padding:6px 12px;border-radius:8px;border:1px solid #475569;background:#334155;color:#fff;cursor:pointer}
+.home:hover{background:#475569}
+.modal label.chk{display:flex;gap:8px;align-items:flex-start;margin:0 0 16px;font-size:15px;cursor:pointer}
+.modal label.chk input{width:18px;height:18px;margin-top:3px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:transparent;color:#cbd5e1;border:0;padding:8px 14px;border-radius:10px;font-size:16px;cursor:pointer;transition:background .15s}
+nav button:hover{background:rgba(255,255,255,.1);color:#fff}
+nav button[data-tab="order"].on{background:#2563eb}
+nav button[data-tab="sales"].on{background:#059669}
+nav button[data-tab="items"].on{background:#ea580c}
+nav button[data-tab="history"].on{background:#7c3aed}
+nav button[data-tab="settings"].on{background:#64748b}
+nav button.on{color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(0,0,0,.3)}
+.file{margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.file .fname{font-size:14px;color:#e2e8f0;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.file .dirty{font-size:12px;background:#f59e0b;color:#1e293b;border-radius:999px;padding:1px 8px;font-weight:700}
+.file button,.file .filebtn{font:inherit;font-size:14px;padding:6px 12px;border-radius:8px;border:1px solid #475569;background:#334155;color:#fff;cursor:pointer}
+.file button:hover,.file .filebtn:hover{background:#475569}
+.file button.p{background:var(--pri);border-color:#3b82f6}
+main{max-width:1240px;margin:0 auto;padding:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.card h2{font-size:18px;margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.card h2::before{content:"";width:6px;height:22px;border-radius:3px;background:var(--accent)}
+.row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
+label.f{display:flex;flex-direction:column;font-size:13px;color:var(--sub);gap:4px;font-weight:600}
+input,select{font:inherit;padding:8px 10px;border:1.5px solid #b8c2d1;border-radius:8px;background:#fff;color:var(--ink)}
+input:focus{outline:3px solid color-mix(in srgb,var(--accent) 35%,transparent);outline-offset:0;border-color:var(--accent)}
+input.num{width:90px;text-align:right}
+input.wide{width:100%}
+button.b{font:inherit;padding:8px 16px;border-radius:8px;border:1.5px solid #b8c2d1;background:#fff;cursor:pointer;transition:background .15s}
+button.b:hover{background:#f1f4f8}
+button.b:disabled{opacity:.45;cursor:default}
+button.p{background:var(--pri);border-color:var(--pri);color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+button.p:hover{background:#1d4fd7}
+button.go{background:#16a34a;border-color:#16a34a;color:#fff;font-weight:700;box-shadow:0 2px 6px rgba(22,163,74,.35);padding:10px 20px;font-size:17px}
+button.go:hover{background:#15803d}
+button.d{color:var(--ng);border-color:#f0b4b4}
+button.p.d{background:var(--ng);border-color:var(--ng);color:#fff}
+button.sm{padding:4px 10px;font-size:14px}
+.seg{display:inline-flex;border:1.5px solid #b8c2d1;border-radius:10px;overflow:hidden;background:#fff}
+.seg button{font:inherit;padding:9px 14px;border:0;background:#fff;cursor:pointer;color:var(--ink)}
+.seg button+button{border-left:1.5px solid #b8c2d1}
+.seg #m-stock.on{background:var(--c-stock);color:#fff;font-weight:700}
+.seg #m-truck.on{background:var(--c-truck);color:#fff;font-weight:700}
+.seg button:hover:not(.on){background:#f1f4f8}
+.seg button.stale{outline:3px solid #facc15;outline-offset:-3px}
+.grip{cursor:grab;color:#94a3b8;font-size:20px;text-align:center;touch-action:none;user-select:none;width:28px}
+.grip:hover{color:var(--accent)}
+tr.dragging td{background:var(--accent-weak) !important;opacity:.9}
+tr.dragging .grip{cursor:grabbing;color:var(--accent)}
+.fmt{display:inline-flex;gap:2px;align-items:center}
+.pm{width:38px;height:38px;padding:0;font-size:20px;line-height:1;font-weight:700}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+table{border-collapse:collapse;width:100%}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{font-size:13px;color:#334155;font-weight:700;background:var(--accent-weak);position:sticky;top:0}
+tbody tr:nth-child(even) td{background:#f8fafc}
+tbody tr:hover td{background:#f1f5fb}
+td.r,th.r{text-align:right}
+td.c,th.c{text-align:center}
+th.grp{font-size:12px;letter-spacing:.05em;text-align:center;border-bottom:0;padding:5px}
+th.g-item{background:#e9edf3;color:#475569}
+th.g-stock{background:var(--c-stock-weak);color:var(--c-stock)}
+th.g-order{background:var(--in);color:#854d0e}
+th.g-after{background:var(--c-date-weak);color:var(--c-date)}
+td.in,th.in{background:var(--in) !important}
+td.in input{border-color:var(--in-line);background:#fff}
+tr.st-ok td:first-child{box-shadow:inset 5px 0 0 #22c55e}
+tr.st-warn td:first-child{box-shadow:inset 5px 0 0 #f59e0b}
+tr.st-ng td:first-child{box-shadow:inset 5px 0 0 #ef4444}
+tr.st-none td:first-child{box-shadow:inset 5px 0 0 #cbd5e1}
+tr.zero td:not(.in){color:#94a3b8}
+.rank{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;font-weight:800;font-size:15px;background:#e2e8f0;color:#475569}
+.rank.r1{background:#facc15;color:#713f12}
+.rank.r2{background:#cbd5e1;color:#1e293b}
+.rank.r3{background:#f0b27a;color:#7c2d12}
+.big{font-size:22px;font-weight:700}
+.muted{color:var(--sub);font-size:13px}
+.tag{display:inline-block;font-size:13px;padding:2px 10px;border-radius:999px;font-weight:700}
+.t-ok{background:var(--ok-weak);color:var(--ok)}
+.t-warn{background:var(--warn-weak);color:var(--warn)}
+.t-ng{background:var(--ng-weak);color:var(--ng)}
+.t-pri{background:var(--pri-weak);color:var(--pri)}
+.t-none{background:#eef2f6;color:#64748b}
+.panels{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px}
+.panel{border-radius:12px;padding:12px 14px;border:1.5px solid}
+.panel h3{margin:0 0 10px;font-size:15px;display:flex;align-items:center;gap:6px}
+.panel .row{gap:12px}
+.panel .sum{font-size:13px;margin-top:8px;color:#334155}
+.p-date{background:var(--c-date-weak);border-color:#bfd4ff}.p-date h3{color:var(--c-date)}
+.p-stock{background:var(--c-stock-weak);border-color:#b7e6c8}.p-stock h3{color:var(--c-stock)}
+.p-truck{background:var(--c-truck-weak);border-color:#f6d39b}.p-truck h3{color:#b45309}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 16px;border-top:5px solid #94a3b8;box-shadow:0 1px 3px rgba(15,23,42,.06)}
+.kpi.k-ok{border-top-color:#22c55e;background:linear-gradient(#f0fdf4,#fff 60%)}
+.kpi.k-warn{border-top-color:#f59e0b;background:linear-gradient(#fff7ed,#fff 60%)}
+.kpi.k-ng{border-top-color:#ef4444;background:linear-gradient(#fef2f2,#fff 60%)}
+.kpi.k-blue{border-top-color:#3b82f6}
+.kpi .l{font-size:13px;color:var(--sub);font-weight:600}
+.kpi .v{font-size:30px;font-weight:800;line-height:1.2}
+.kpi .v small{font-size:14px;font-weight:500;color:var(--sub);margin-left:4px}
+.gauge{position:relative;height:40px;background:#e8edf3;border-radius:10px;margin:30px 0 24px}
+.gauge .band{position:absolute;top:0;bottom:0;background:repeating-linear-gradient(45deg,#bbf7d0,#bbf7d0 8px,#dcfce7 8px,#dcfce7 16px);border-left:3px solid var(--ok);border-right:3px solid var(--ok)}
+.gauge .fill{position:absolute;top:9px;bottom:9px;left:0;border-radius:6px;transition:width .25s}
+.gauge .lbl{position:absolute;top:-24px;font-size:13px;font-weight:700;color:var(--ok);transform:translateX(-50%);white-space:nowrap}
+.gauge .ax{position:absolute;bottom:-22px;font-size:12px;color:var(--sub);transform:translateX(-50%)}
+.gauge .mk{position:absolute;top:-6px;bottom:-6px;width:4px;border-radius:2px;background:var(--ink);transform:translateX(-50%);transition:left .25s}
+.gauge .now{position:absolute;top:50%;transform:translate(8px,-50%);font-size:13px;font-weight:800;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.4);white-space:nowrap}
+.cases{display:flex;align-items:center;gap:6px;justify-content:center}
+.cases input{width:66px;text-align:center;font-size:19px;font-weight:800}
+.empty{text-align:center;padding:32px;color:var(--sub)}
+.note{background:var(--warn-weak);border:1px solid #fdba74;color:#7c2d12;border-radius:10px;padding:10px 14px;margin-top:12px;font-size:14px}
+.note.ng{background:var(--ng-weak);border-color:#fca5a5;color:#7f1d1d}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--sub);margin:10px 0 0;align-items:center}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px;vertical-align:-2px;margin-right:4px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0f172a;color:#fff;padding:12px 20px;border-radius:10px;font-size:15px;opacity:0;pointer-events:none;transition:opacity .2s;z-index:30;max-width:90vw;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast.on{opacity:1}
+.modal-bg{position:fixed;inset:0;background:rgba(15,23,42,.5);display:none;align-items:center;justify-content:center;z-index:20;padding:16px}
+.modal-bg.on{display:flex}
+.modal{background:#fff;border-radius:14px;padding:22px;max-width:460px;width:100%;box-shadow:0 20px 50px rgba(0,0,0,.3)}
+.modal p{margin:0 0 16px;white-space:pre-line}
+.modal .acts{display:flex;gap:8px;justify-content:flex-end}
+.hint{font-size:13px;color:var(--sub);margin:8px 0 0}
+.sales-grid td.cell{cursor:pointer}
+.sales-grid td.cell:hover{background:var(--accent-weak) !important}
+.voice{background:var(--accent-weak);border:1.5px solid #9fdcc4;border-radius:12px;padding:12px 14px;margin:12px 0}
+.voice .row{gap:8px;align-items:center}
+.mic{font:inherit;font-size:17px;font-weight:700;padding:10px 18px;border-radius:999px;border:0;background:#059669;color:#fff;cursor:pointer;box-shadow:0 2px 6px rgba(5,150,105,.35)}
+.mic.on{background:#dc2626;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(220,38,38,.5)}50%{box-shadow:0 0 0 10px rgba(220,38,38,0)}}
+.vlog{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.vlog .tag{font-weight:600}
+.vlog button[data-ok]{border-color:var(--ok);color:var(--ok)}
+.vlog button{font:inherit;font-size:13px;padding:2px 10px;border-radius:999px;border:1.5px solid var(--warn);background:#fff;color:var(--warn);cursor:pointer}
+input.vset{animation:vset 1.6s}
+input.guess{background:#fef08a !important;border-color:#ca8a04 !important;box-shadow:0 0 0 3px #fde047}
+.vlog select{font:inherit;font-size:13px;padding:2px 6px;margin:0 4px}
+@keyframes vset{0%{background:#bbf7d0;border-color:#16a34a}100%{background:#fff}}
+@media (max-width:640px){
+  main{padding:12px}
+  .kpi .v{font-size:24px}
+  th,td{padding:6px}
+}
+</style>
+</head>
+<body data-tab="order">
+<header>
+  <h1 id="h-title" title="ホームへ">📦 発注アシスタント</h1>
+  <button class="home" id="h-home" title="発注提案の画面に戻る">🏠 ホーム</button>
+  <nav id="nav">
+    <button data-tab="order" class="on">📋 発注提案</button>
+    <button data-tab="sales">✏️ 販売入力</button>
+    <button data-tab="items">📦 商品・在庫</button>
+    <button data-tab="history">🧾 発注履歴</button>
+    <button data-tab="settings">⚙️ 設定</button>
+  </nav>
+  <div class="file">
+    <span class="fname" id="f-name" title="">新規(未保存)</span><span class="dirty" id="f-dirty" hidden>未保存</span>
+    <button id="f-new" title="空の新しいデータを作る">＋ 新規作成</button>
+    <label class="filebtn" title="保存したファイル(.html)やバックアップ(.json)を開く">📂 開く<input type="file" id="f-open" accept=".html,.htm,.json,text/html,application/json" hidden></label>
+    <button id="f-save" class="p" title="Ctrl+S">💾 上書き保存</button>
+    <button id="f-saveas">名前を付けて保存</button>
+  </div>
+</header>
+<main id="main"></main>
+<div class="toast" id="toast"></div>
+<div class="modal-bg" id="modal"><div class="modal"><p id="modal-msg"></p><input id="modal-in" class="wide" hidden style="margin-bottom:16px"><label class="chk" id="modal-chk-l" hidden><input type="checkbox" id="modal-chk"><span id="modal-chk-t"></span></label><div class="acts"><button class="b" id="modal-no">キャンセル</button><button class="b p" id="modal-yes">OK</button></div></div></div>
+
+<script type="application/json" id="saved-data">null</script>
+<script>
+'use strict';
+// 保存ファイルを作るため、画面を書き換える前の HTML を控えておく
+const PRISTINE = '<!doctype html>' + String.fromCharCode(10) + document.documentElement.outerHTML;
+const KEY = 'sales-order-app-v1';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num = (v, d = 0) => { const n = parseFloat(v); return Number.isFinite(n) ? n : d; };
+const fmt = (n, d = 1) => (Math.round(n * 10 ** d) / 10 ** d).toLocaleString('ja-JP');
+const r2 = n => Math.round(n * 100) / 100;
+const cv = n => r2(n).toFixed(2);   // 換算は小数第2位まで表示
+const uid = () => Math.random().toString(36).slice(2, 10);
+
+// ---- 日付 ----
+const ymd = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const today = () => ymd(new Date());
+const parseYmd = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+const diffDays = (a, b) => Math.round((parseYmd(b) - parseYmd(a)) / 86400000);
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const md = s => { const d = parseYmd(s); return `${d.getMonth() + 1}/${d.getDate()}(${WD[d.getDay()]})`; };
+
+// ---- 状態 ----
+const DEFAULT = {
+  products: [],               // {id, name, caseQty, conv, stock}
+  sales: {},                  // {'YYYY-MM-DD': {pid: 個数}}
+  orders: [],                 // {id, date, nextDate, items:[{pid,name,cases,pieces,conv}], total}
+  settings: { nextOrderDate: addDays(today(), 3), leadDays: 1, safetyDays: 1, avgDays: 7, truckMin: 45, truckMax: 55, targetDays: null },
+};
+let tab = 'order';
+let draft = null;               // 発注提案の手修正 {pid: cases}
+let mode = 'stock';             // 'stock' 入荷後在庫の目標で計算 / 'truck' 換算目標に合わせる
+let orderDate = today();
+let salesDate = today();
+// 保存ファイルの情報。ファイルから開いた場合は埋め込みデータを使う
+const EMB = (() => { try { return JSON.parse(document.getElementById('saved-data').textContent); } catch (e) { return null; } })();
+let doc = EMB ? { id: EMB.docId, name: EMB.name, savedAt: EMB.savedAt } : { id: null, name: null, savedAt: null };
+let fileHandle = null;          // 上書き保存先(このセッションで保存したファイル)
+let dirty = false;
+const lsKey = () => doc.id ? `${KEY}:${doc.id}` : KEY;
+// 音声認識が出しがちな表記を、商品名ごとに最初から呼び名として入れておく(一度だけ。消した呼び名は戻さない)
+const YOMI_SEED = {
+  'インカ': 'いんか、インカの目覚め、インカのめざめ', '有明海苔': 'ありあけのり、有明のり、有明',
+  '鶏塩': 'とりしお、鳥塩、鶏しお、取り塩', 'アンチョビ': 'あんちょび、アンチョビー',
+  'カリッとカレー': 'かりっとかれー、カリットカレー、かりっと', 'いもこまち': '芋こまち、芋小町、いも小町',
+  '旅じゃが': 'たびじゃが、旅ジャガ', '七味家': 'しちみや、七味屋、七味や、しちみ家',
+  'NEXT': 'ネクスト、ねくすと', 'たくみ': '巧、匠、拓海、拓実、タクミ',
+  '16枚': '十六枚、じゅうろくまい、16まい', '13枚': '十三枚、じゅうさんまい、13まい',
+  'さくさく塩': 'サクサク塩、さくさくしお、サクサクしお', 'さくさくレモン': 'サクサクレモン、さくさくれもん',
+  'beeレモン': 'ビーレモン、Bレモン、びーれもん', 'beeカリー': 'ビーカリー、Bカリー、ビーカレー、beeカレー',
+  'ミノ': 'みの、美濃、蓑', 'むんぽ': 'ムンポ、むんぼ、ムンボ', 'べに': '紅、ベニ',
+  '発酵': 'はっこう、発行、発光', 'えびショコ': 'エビショコ、海老ショコ、えびチョコ、エビチョコ、海老チョコ',
+  'クラショコ': 'クラチョコ、くらしょこ', '明太': 'めんたい、明太子、めんたいこ', '九州': 'きゅうしゅう、吸収',
+  'トリュフ': 'とりゅふ、トリフ', '燻製': 'くんせい、薫製', 'ベーコン': 'べーこん',
+  'ほたて': '帆立、ホタテ', '焼き塩': 'やきしお、焼塩、焼きしお', 'ざくざく紅': 'ザクザク紅、ざくざくべに、ザクザクべに',
+};
+function seedYomi(products) {
+  products.forEach(p => {
+    if (p.seeded || !YOMI_SEED[p.name]) return;
+    const list = String(p.yomi || '').split(/[、,，\s]+/).filter(Boolean);
+    YOMI_SEED[p.name].split('、').forEach(w => { if (!list.some(x => kana(x) === kana(w))) list.push(w); });
+    p.yomi = list.join('、'); p.seeded = true;
+  });
+  return products;
+}
+let S = load();
+
+function norm(s) { const o = { ...structuredClone(DEFAULT), ...s, settings: { ...DEFAULT.settings, ...s.settings } }; seedYomi(o.products); return o; }
+function load() {
+  if (EMB) { applyView(EMB.view); return norm(EMB.data); }
+  try {
+    const s = JSON.parse(localStorage.getItem(KEY));
+    if (s && s.products) return norm(s);
+  } catch (e) {}
+  return structuredClone(DEFAULT);
+}
+function applyView(v) {
+  if (!v) return;
+  tab = v.tab || tab; draft = v.draft || null; mode = v.mode || mode;
+  orderDate = v.orderDate || orderDate; salesDate = v.salesDate || salesDate;
+}
+// 変更のたびにブラウザ内へ自動保存(ファイルへの保存は「上書き保存」で)
+function save() {
+  try {
+    if (doc.id) localStorage.setItem(lsKey(), JSON.stringify({ data: S, view: view(), at: Date.now() }));
+    if (!EMB) localStorage.setItem(KEY, JSON.stringify(S));   // index.html を開き直しても最新のまま
+  }
+  catch (e) { toast('保存できませんでした(ブラウザの保存領域)'); }
+  dirty = true; fileBar();
+}
+const view = () => ({ tab, draft, mode, orderDate, salesDate });
+const prod = id => S.products.find(p => p.id === id);
+
+// ---- 計算 ----
+// 直近 avgDays 回分の入力日で平均(入力の無い商品は 0 個として数える)
+function salesDates() { return Object.keys(S.sales).sort().reverse(); }
+function avgDaily(pid) {
+  const ds = salesDates().slice(0, S.settings.avgDays);
+  if (!ds.length) return 0;
+  return ds.reduce((a, d) => a + num(S.sales[d][pid]), 0) / ds.length;
+}
+
+// 入荷後在庫の目標日数(全体)。未設定なら 発注間隔 + 安全在庫日数
+const autoTarget = interval => interval + S.settings.safetyDays;
+const globalTarget = interval => S.settings.targetDays ?? autoTarget(interval);
+
+function plan() {
+  const st = S.settings;
+  const interval = Math.max(0, diffDays(orderDate, st.nextOrderDate));
+  const target = globalTarget(interval);
+  const rows = S.products.map(p => {
+    const avg = avgDaily(p.id);
+    const tDays = p.targetDays ?? target;
+    // 納品までに売れる分(avg × leadDays)を引いた残りに、入荷後 tDays 日分を足す
+    const need = Math.max(0, avg * (st.leadDays + tDays) - p.stock);
+    const base = p.caseQty > 0 ? Math.ceil(need / p.caseQty - 1e-9) : 0;
+    return { p, avg, tDays, need, base, cases: base };
+  });
+  // 売上の多い順に並べ、順位をつける
+  rows.sort((a, b) => b.avg - a.avg);
+  rows.forEach((r, i) => { r.rank = r.avg > 0 ? i + 1 : null; });
+  if (mode === 'truck') adjustToTruck(rows, interval);
+  return { interval, target, rows };
+}
+
+// 入荷時点の在庫が何日分か(納品までに売れる分を差し引く)
+const daysAfter = (r, c) => r.avg > 0 ? (r.p.stock - r.avg * S.settings.leadDays + c * r.p.caseQty) / r.avg : Infinity;
+const totalOf = rows => rows.reduce((a, r) => a + r.cases * r.p.conv, 0);
+const OVER = 1.5;   // 積載合わせで足すときは目標日数の1.5倍までを優先
+
+// 換算合計が min〜max に入るようケース数を増減する。売上の多い商品を優先する
+function adjustToTruck(rows, interval) {
+  const { truckMin: lo, truckMax: hi } = S.settings;
+  const usable = rows.filter(r => r.p.conv > 0 && r.p.caseQty > 0);
+  if (!usable.length) return;
+  const byAvg = (pool, desc) => pool.reduce((a, b) => (desc ? b.avg > a.avg : b.avg < a.avg) ? b : a);
+  let guard = 2000;
+  // 足りない → 売上の多い商品から1ケースずつ追加(目標日数の1.5倍を超えるものは後回し)
+  while (totalOf(rows) < lo - 1e-9 && guard--) {
+    const t = totalOf(rows);
+    let cands = usable.filter(r => r.avg > 0);
+    if (!cands.length) cands = usable;
+    const fit = cands.filter(r => t + r.p.conv <= hi + 1e-9);
+    const pool = fit.length ? fit : [cands.reduce((a, b) => (b.p.conv < a.p.conv ? b : a))];
+    const room = pool.filter(r => daysAfter(r, r.cases + 1) <= r.tDays * OVER);
+    const pick = room.length ? byAvg(room, true)
+      : pool.reduce((a, b) => (daysAfter(b, b.cases + 1) / b.tDays < daysAfter(a, a.cases + 1) / a.tDays ? b : a));
+    pick.cases++;
+  }
+  // 多すぎる → 売上の少ない商品から1ケースずつ減らす(まず次回入荷まで欠品しない範囲で)
+  while (totalOf(rows) > hi + 1e-9 && guard--) {
+    const t = totalOf(rows);
+    const cands = usable.filter(r => r.cases > 0);
+    if (!cands.length) break;
+    const safe = cands.filter(r => daysAfter(r, r.cases - 1) >= interval);
+    let pool = safe.length ? safe : cands;
+    const fit = pool.filter(r => t - r.p.conv >= lo - 1e-9);
+    if (fit.length) pool = fit;
+    byAvg(pool, false).cases--;
+  }
+}
+// ---- 共通UI ----
+let toastT;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+function ask(msg, yes = 'OK', danger = false) {
+  return new Promise(res => {
+    $('#modal-msg').textContent = msg;
+    const y = $('#modal-yes'), n = $('#modal-no');
+    y.textContent = yes; y.classList.toggle('d', danger);
+    const done = v => { $('#modal').classList.remove('on'); y.onclick = n.onclick = null; res(v); };
+    y.onclick = () => done(true); n.onclick = () => done(false);
+    $('#modal').classList.add('on'); y.focus();
+  });
+}
+function stockText(p) {
+  const c = Math.floor(p.stock / p.caseQty), b = p.stock - c * p.caseQty;
+  return p.caseQty > 1 ? `${c}ケース${b ? ' + ' + fmt(b, 0) + '個' : ''}` : '';
+}
+// Enter で次の入力欄へ
+function enterNav(root) {
+  root.querySelectorAll('input[data-nav]').forEach((el, i, all) => {
+    el.addEventListener('focus', () => el.select());
+    el.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); const nx = all[i + (e.shiftKey ? -1 : 1)]; if (nx) nx.focus(); else el.blur(); }
+    });
+  });
+}
+
+document.getElementById('nav').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  tab = b.dataset.tab;
+  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x === b));
+  render();
+});
+
+function render() {
+  if (rec) { rec.onend = null; rec.abort(); rec = null; }   // 画面を作り直すときは音声入力を止める
+  document.body.dataset.tab = tab;
+  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('on', x.dataset.tab === tab));
+  ({ order: rOrder, sales: rSales, items: rItems, history: rHistory, settings: rSettings })[tab]();
+}
+function noProducts() {
+  return `<div class="card empty"><p class="big">まだ商品がありません</p>
+    <p>「商品・在庫」タブで商品を登録してください。</p>
+    ${loadFormats().length ? `<p>保存したフォーマットから追加:<br>${formatButtons()}</p>` : ''}
+    <p><button class="b p" onclick="goTab('items')">商品を登録する</button>
+    <button class="b" onclick="loadSample()">サンプルデータで試す</button></p></div>`;
+}
+function goTab(t) { document.querySelector(`#nav button[data-tab="${t}"]`).click(); }
+
+// ---- 発注提案 ----
+function rOrder() {
+  const m = $('#main');
+  if (!S.products.length) { m.innerHTML = noProducts(); bindFormatButtons(m); return; }
+  const st = S.settings;
+  const P = plan();
+  if (draft) P.rows.forEach(r => { if (draft[r.p.id] != null) r.cases = draft[r.p.id]; });
+  const total = totalOf(P.rows);
+  const inRange = total >= st.truckMin - 1e-9 && total <= st.truckMax + 1e-9;
+  const status = inRange ? ['t-ok', '積載OK'] : total < st.truckMin ? ['t-warn', `あと ${cv(st.truckMin - total)} 不足`] : ['t-ng', `${cv(total - st.truckMax)} 超過`];
+  const scaleMax = Math.max(st.truckMax * 1.25, total * 1.05, 10);
+  const pct = v => Math.min(100, v / scaleMax * 100);
+  const fillColor = inRange ? 'var(--ok)' : total < st.truckMin ? 'var(--warn)' : 'var(--ng)';
+  const nSales = Math.min(salesDates().length, st.avgDays);
+  const shortItems = P.rows.filter(r => r.avg > 0 && daysAfter(r, r.cases) < P.interval);
+
+  const kTruck = inRange ? 'k-ok' : total < st.truckMin ? 'k-warn' : 'k-ng';
+  m.innerHTML = `
+  <div class="card">
+    <h2>発注の条件</h2>
+    <div class="panels">
+      <div class="panel p-date"><h3>📅 日程</h3>
+        <div class="row">
+          <label class="f">発注日<input type="date" id="o-date" value="${orderDate}"></label>
+          <label class="f">次回発注日<input type="date" id="o-next" value="${st.nextOrderDate}"></label>
+          <label class="f">納品まで(日)<input type="number" class="num" id="o-lead" min="0" value="${st.leadDays}" style="width:70px"></label>
+        </div>
+        <div class="sum">発注間隔 <b>${P.interval}日</b>(${md(orderDate)} → ${md(st.nextOrderDate)})</div>
+      </div>
+      <div class="panel p-stock"><h3>📦 在庫の目標</h3>
+        <div class="row">
+          <label class="f">入荷後在庫(日分)<input type="number" class="num" id="o-target" min="0" step="0.5" value="${st.targetDays ?? ''}" placeholder="自動 ${fmt(autoTarget(P.interval))}"></label>
+          <label class="f">安全在庫(日)<input type="number" class="num" id="o-safe" min="0" step="0.5" value="${st.safetyDays}" style="width:70px"></label>
+        </div>
+        <div class="sum">入荷後 <b>${fmt(P.target)}日分</b> を目標 ${st.targetDays == null ? `<span class="muted">(自動:間隔 ${P.interval} + 安全 ${st.safetyDays})</span>` : '<span class="muted">(手入力。空欄で自動)</span>'}</div>
+      </div>
+      <div class="panel p-truck"><h3>🚚 トラック換算の目標</h3>
+        <div class="row">
+          <label class="f">下限<input type="number" class="num" id="o-tmin" min="0" step="0.01" value="${st.truckMin}" style="width:84px"></label>
+          <span style="padding-bottom:10px">〜</span>
+          <label class="f">上限<input type="number" class="num" id="o-tmax" min="0" step="0.01" value="${st.truckMax}" style="width:84px"></label>
+        </div>
+        <div class="sum">換算合計を <b>${st.truckMin}〜${st.truckMax}</b> に収めるのが目安</div>
+      </div>
+    </div>
+    ${P.interval <= 0 ? '<div class="note ng">⚠ 次回発注日が発注日以前になっています。次回発注日を設定してください。</div>' : ''}
+    ${nSales === 0 ? '<div class="note">ℹ 販売数がまだ入力されていません。「販売入力」で入力すると平均から発注数を計算します。</div>' : ''}
+  </div>
+
+  <div class="kpis">
+    <div class="kpi ${kTruck}"><div class="l">🚚 換算合計</div><div class="v" style="color:${fillColor}">${cv(total)}<small>/ ${st.truckMin}〜${st.truckMax}</small></div><span class="tag ${status[0]}">${status[1]}</span></div>
+    <div class="kpi k-blue"><div class="l">📦 発注ケース数</div><div class="v">${P.rows.reduce((a, r) => a + r.cases, 0)}<small>ケース</small></div><span class="muted">${P.rows.filter(r => r.cases).length} 品目</span></div>
+    <div class="kpi ${nSales ? 'k-blue' : 'k-warn'}"><div class="l">📈 平均の算出</div><div class="v">${nSales}<small>日分</small></div><span class="muted">直近${st.avgDays}日で計算</span></div>
+    <div class="kpi ${shortItems.length ? 'k-ng' : 'k-ok'}"><div class="l">⚠ 欠品リスク</div><div class="v" style="color:${shortItems.length ? 'var(--ng)' : 'var(--ok)'}">${shortItems.length}<small>品目</small></div><span class="muted">${shortItems.length ? '赤い行を確認' : '問題なし'}</span></div>
+  </div>
+
+  <div class="card">
+    <h2>トラック積載</h2>
+    <div class="gauge">
+      <div class="band" style="left:${pct(st.truckMin)}%;width:${pct(st.truckMax) - pct(st.truckMin)}%"></div>
+      <div class="lbl" style="left:${(pct(st.truckMin) + pct(st.truckMax)) / 2}%">目標 ${st.truckMin}〜${st.truckMax}</div>
+      <div class="fill" style="width:${pct(total)}%;background:${fillColor}"></div>
+      <div class="mk" style="left:${pct(total)}%"></div>
+      ${total > 0 ? `<div class="now" style="left:${pct(total)}%;${pct(total) > 85 ? 'transform:translate(calc(-100% - 10px),-50%);color:#fff' : 'color:var(--ink);text-shadow:none'}">${cv(total)}</div>` : ''}
+      <div class="ax" style="left:0%">0</div><div class="ax" style="left:${pct(st.truckMin)}%">${st.truckMin}</div><div class="ax" style="left:${pct(st.truckMax)}%">${st.truckMax}</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2 style="margin:0">発注数</h2>
+      <div class="row" style="gap:10px;align-items:center">
+        <span class="muted">計算方法:</span>
+        <div class="seg" title="押すとその条件で発注数を計算し直します">
+          <button id="m-stock" class="${mode === 'stock' ? 'on' : ''}">📦 在庫目標で計算</button>
+          <button id="m-truck" class="${mode === 'truck' ? 'on' : ''}">🚚 換算目標(${st.truckMin}〜${st.truckMax})に合わせる</button>
+        </div>
+        <button class="b go" id="o-confirm">✔ この内容で発注確定</button>
+      </div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead>
+        <tr><th class="grp g-item" colspan="2">商品</th><th class="grp g-stock" colspan="3">今の在庫と売れ行き</th><th class="grp g-order" colspan="3">✏ 発注(ここを入力)</th><th class="grp g-after" colspan="3">入荷後</th></tr>
+        <tr><th class="c">売上順位</th><th>商品名</th><th class="r">平均/日</th><th class="r">現在庫</th><th class="r">必要数</th><th class="c in">発注ケース</th><th class="r">発注個数</th><th class="r">換算</th><th class="r">入荷後在庫</th><th class="c in">目標日数</th><th>状態</th></tr>
+      </thead>
+      <tbody>${P.rows.map(r => {
+        const after = Math.max(0, r.p.stock - r.avg * st.leadDays) + r.cases * r.p.caseQty;
+        const d = daysAfter(r, r.cases);
+        let tag, cls;
+        if (r.avg === 0) { tag = '<span class="tag t-none">販売なし</span>'; cls = 'st-none'; }
+        else if (d < P.interval) { tag = '<span class="tag t-ng">⚠ 欠品の恐れ</span>'; cls = 'st-ng'; }
+        else if (d > r.tDays * OVER + 1 && r.cases > 0) { tag = '<span class="tag t-warn">▲ 多め</span>'; cls = 'st-warn'; }
+        else { tag = '<span class="tag t-ok">✓ 適正</span>'; cls = 'st-ok'; }
+        const diff = r.cases - r.base;
+        const adj = diff ? `<div class="muted" style="color:var(--c-truck);font-weight:700">🚚 積載調整 ${diff > 0 ? '+' : ''}${diff}</div>` : '';
+        return `<tr class="${cls}${r.cases ? '' : ' zero'}">
+          <td class="c">${r.rank ? `<span class="rank${r.rank <= 3 ? ' r' + r.rank : ''}">${r.rank}</span>` : '<span class="muted">—</span>'}</td>
+          <td><b>${esc(r.p.name)}</b><div class="muted">${r.p.caseQty}個/ケース・換算${cv(r.p.conv)}</div></td>
+          <td class="r"><b>${fmt(r.avg)}</b></td>
+          <td class="r">${fmt(r.p.stock, 0)}<div class="muted">${stockText(r.p)}</div></td>
+          <td class="r">${fmt(Math.ceil(r.need), 0)}<div class="muted">基本 ${r.base}ケース</div></td>
+          <td class="c in"><div class="cases">
+            <button class="b pm" data-pm="${r.p.id}" data-d="-1">−</button>
+            <input type="number" min="0" data-nav data-case="${r.p.id}" value="${r.cases}" inputmode="numeric">
+            <button class="b pm" data-pm="${r.p.id}" data-d="1">＋</button></div>${adj}</td>
+          <td class="r">${fmt(r.cases * r.p.caseQty, 0)}</td>
+          <td class="r"><b>${cv(r.cases * r.p.conv)}</b></td>
+          <td class="r">${fmt(after, 0)}<div class="muted">${Number.isFinite(d) ? '約' + fmt(d) + '日分' : '—'}</div></td>
+          <td class="c in"><input type="number" class="num" min="0" step="0.5" data-nav data-target="${r.p.id}" value="${r.p.targetDays ?? ''}" placeholder="${fmt(P.target)}" style="width:72px;text-align:center"></td>
+          <td>${tag}</td></tr>`;
+      }).join('')}</tbody>
+    </table></div>
+    <div class="legend">
+      <span><i style="background:var(--in);border:1px solid var(--in-line)"></i>入力できる欄</span>
+      <span><i style="background:#22c55e"></i>適正</span><span><i style="background:#f59e0b"></i>多め</span>
+      <span><i style="background:#ef4444"></i>欠品の恐れ</span><span><i style="background:#cbd5e1"></i>販売なし</span>
+      <span><span class="rank r1" style="width:20px;height:20px;font-size:11px">1</span> 売上順位</span>
+    </div>
+    ${shortItems.length ? `<div class="note ng">⚠「欠品の恐れ」:次回分の入荷(入荷から${P.interval}日後)まで持たない可能性があります。積載上限を超える場合は他の商品を減らすか、上限を見直してください。</div>` : ''}
+    <p class="hint" id="o-hint">${mode === 'stock'
+      ? `<b>在庫目標で計算</b>:必要数 = 平均/日 ×(納品まで ${st.leadDays}日 + 目標日数)− 現在庫 をケース単位に切り上げ。換算合計は目標として表示するだけで、合わせません。`
+      : `<b>換算目標に合わせる</b>:在庫目標の数をもとに、換算合計が ${st.truckMin}〜${st.truckMax} に入るよう<b>売上の多い商品から追加</b>(目標日数の${OVER}倍まで)/<b>売上の少ない商品から削減</b>しています(「積載調整」の表示が増減分)。`}
+      <br>目標日数(上の全体設定・右の商品ごと)を変えたら、どちらかのボタンを押すと計算し直します。ケース数は＋/−や直接入力で自由に修正できます。</p>
+  </div>`;
+
+  const setS = (k, v) => { S.settings[k] = v; save(); draft = null; render(); };
+  $('#o-date').onchange = e => { if (e.target.value) { orderDate = e.target.value; draft = null; render(); } };
+  $('#o-next').onchange = e => e.target.value && setS('nextOrderDate', e.target.value);
+  $('#o-lead').onchange = e => setS('leadDays', Math.max(0, num(e.target.value)));
+  $('#o-safe').onchange = e => setS('safetyDays', Math.max(0, num(e.target.value)));
+  $('#o-tmin').onchange = e => { const v = r2(Math.max(0, num(e.target.value))); if (v > st.truckMax) { toast('下限が上限を超えています'); return render(); } setS('truckMin', v); };
+  $('#o-tmax').onchange = e => { const v = r2(Math.max(0, num(e.target.value))); if (v < st.truckMin) { toast('上限が下限を下回っています'); return render(); } setS('truckMax', v); };
+  $('#o-target').onchange = e => setS('targetDays', e.target.value === '' ? null : Math.max(0, num(e.target.value)));
+  // 商品ごとの目標日数は入力だけ保存し、「再提案」で反映する
+  m.querySelectorAll('[data-target]').forEach(i => i.onchange = () => {
+    const p = prod(i.dataset.target);
+    p.targetDays = i.value === '' ? null : Math.max(0, num(i.value)); save();
+    $('#m-' + mode).classList.add('stale'); $('#o-hint').insertAdjacentHTML('afterbegin', '<b style="color:var(--warn)">目標日数を変更しました。ボタンを押すと反映されます。</b><br>');
+  });
+  const cur = () => Object.fromEntries(P.rows.map(r => [r.p.id, r.cases]));
+  m.querySelectorAll('[data-pm]').forEach(b => b.onclick = () => {
+    draft = cur(); draft[b.dataset.pm] = Math.max(0, draft[b.dataset.pm] + Number(b.dataset.d)); render();
+  });
+  m.querySelectorAll('[data-case]').forEach(i => i.onchange = () => {
+    draft = cur(); draft[i.dataset.case] = Math.max(0, Math.round(num(i.value))); render();
+    const again = m.querySelector(`[data-case="${i.dataset.case}"]`); if (again) again.focus();
+  });
+  enterNav(m);
+  const runMode = md => { mode = md; draft = null; render(); toast(md === 'stock' ? '入荷後在庫の目標で計算しました' : `換算合計を ${st.truckMin}〜${st.truckMax} に合わせました`); };
+  $('#m-stock').onclick = () => runMode('stock');
+  $('#m-truck').onclick = () => runMode('truck');
+  $('#o-confirm').onclick = async () => {
+    const items = P.rows.filter(r => r.cases > 0);
+    if (!items.length) { toast('発注するケースがありません'); return; }
+    const warn = inRange ? '' : `\n※換算合計 ${cv(total)} は目標(${st.truckMin}〜${st.truckMax})の範囲外です。`;
+    if (!await ask(`${md(orderDate)} の発注を確定します。\n合計 ${items.reduce((a, r) => a + r.cases, 0)}ケース/換算 ${cv(total)}\n発注した数を在庫に加算します。${warn}`, '発注確定')) return;
+    items.forEach(r => { r.p.stock += r.cases * r.p.caseQty; });
+    S.orders.unshift({ id: uid(), date: orderDate, nextDate: st.nextOrderDate, total,
+      items: items.map(r => ({ pid: r.p.id, name: r.p.name, cases: r.cases, pieces: r.cases * r.p.caseQty, conv: r.p.conv })) });
+    // 次の発注に備えて日付を進める(同じ間隔で)
+    const iv = Math.max(1, P.interval);
+    orderDate = st.nextOrderDate;
+    st.nextOrderDate = addDays(orderDate, iv);
+    save(); draft = null;
+    toast(`発注を確定し在庫に加算しました。次回は ${md(orderDate)}、その次を ${md(st.nextOrderDate)} に仮設定しています`);
+    render();
+  };
+}
+
+// ---- 音声入力 ----
+// 「インカ 50、アンチョビ 20」→ [{name:'インカ', q:50}, …] にして、近い名前の商品の欄へ入れる
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+// 比べやすい形に:全角半角をそろえ、カタカナ→ひらがな、記号・空白・長音を除く
+function kana(s) { return String(s ?? '').normalize('NFKC').toLowerCase()
+  .replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60))
+  .replace(/[\s・.,、。ー\-_()（）「」'"!?！？]/g, ''); }
+function kanjiNum(s) {
+  const D = { '〇': 0, '零': 0, '一': 1, '二': 2, '三': 3, '四': 4, '五': 5, '六': 6, '七': 7, '八': 8, '九': 9 }, U = { '十': 10, '百': 100, '千': 1000 };
+  let total = 0, cur = 0;
+  for (const c of s) { if (c in D) cur = cur * 10 + D[c]; else { total += (cur || 1) * U[c]; cur = 0; } }
+  return total + cur;
+}
+// 名前に数字・漢数字が入る商品(16枚・十六枚・七味家 など)は、先に記号へ置き換えてから数を拾う
+function protectNames(t) {
+  const keys = [...new Set(S.products.flatMap(p => [p.name, ...String(p.yomi || '').split(/[、,，\s]+/)]))]
+    .map(k => k.normalize('NFKC').replace(/\s+/g, '')).filter(k => /[\d〇一二三四五六七八九十百千]/.test(k)).sort((a, b) => b.length - a.length);
+  const map = {};
+  keys.forEach((k, i) => {
+    const ch = String.fromCharCode(0xE000 + i);
+    const re = new RegExp([...k].map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*'), 'gi');
+    t = t.replace(re, m => { map[ch] = m; return ch; });
+  });
+  return { t, back: s => s.replace(/[-]/g, c => map[c] ?? c) };
+}
+// 「むんぽ 2」が「むんぼに」のように、数がかなで名前にくっついて認識されることがある
+const KN_D = { 'いち': 1, 'いっ': 1, 'に': 2, 'さん': 3, 'よん': 4, 'し': 4, 'ご': 5, 'ろく': 6, 'ろっ': 6, 'なな': 7, 'しち': 7, 'はち': 8, 'はっ': 8, 'きゅう': 9, 'く': 9 };
+const KN_U = { 'じゅう': 10, 'じゅっ': 10, 'ひゃく': 100, 'びゃく': 100, 'ぴゃく': 100, 'せん': 1000, 'ぜん': 1000 };
+const KN_T = { 'ひとつ': 1, 'ふたつ': 2, 'みっつ': 3, 'よっつ': 4, 'いつつ': 5, 'むっつ': 6, 'ななつ': 7, 'やっつ': 8, 'ここのつ': 9, 'とお': 10 };
+const KN_W = [...Object.keys(KN_D), ...Object.keys(KN_U)].sort((a, b) => b.length - a.length).join('|');
+const KN_RE = new RegExp(`(?:${Object.keys(KN_T).join('|')}|(?:${KN_W})+)(?:こ|個)?(?=[\\s、,。.]|$)`, 'g');
+function kanaNum(s) {
+  s = s.replace(/(こ|個)$/, '');
+  if (s in KN_T) return KN_T[s];
+  const toks = s.match(new RegExp(KN_W, 'g')) || [];
+  if (toks.join('') !== s) return null;
+  let total = 0, cur = 0, seen = false;
+  for (const w of toks) {
+    if (w in KN_D) { if (seen) return null; cur = KN_D[w]; seen = true; }   // 「にに」などは数ではない
+    else { total += (cur || 1) * KN_U[w]; cur = 0; seen = false; }
+  }
+  return total + cur;
+}
+const hira = s => s.toLowerCase().replace(/[ァ-ヶ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0x60));   // 長さは変えない
+function bestScore(said) {
+  const s = kana(said); if (!s) return 0;
+  return Math.max(0, ...S.products.map(p => Math.max(...[p.name, ...String(p.yomi || '').split(/[、,，\s]+/)].map(k => scoreKey(kana(k), s)))));
+}
+// 名前のすぐ後ろのかなの数を数字にする。ただし外した方が商品名によく合うときだけ(「いもこまち」の「ち」などは触らない)
+function kanaNums(t) {
+  const h = hira(t), cuts = [];
+  let mt;
+  KN_RE.lastIndex = 0;
+  while ((mt = KN_RE.exec(h))) {
+    const retry = () => { KN_RE.lastIndex = mt.index + 1; };   // 「べにろく」→「にろく」で外れたら「ろく」から探し直す
+    const v = kanaNum(mt[0]); if (v == null || v === 0) { retry(); continue; }
+    const head = h.slice(0, mt.index), from = Math.max(head.search(/[^\s、,。.\d\uE000-\uF8FF]*$/), 0);
+    const pre = head.slice(from).trim();
+    if (pre && !(bestScore(pre) >= 55 && bestScore(pre) > bestScore(pre + mt[0]))) { retry(); continue; }
+    cuts.push([mt.index, mt[0].length, v]);
+  }
+  for (const [i, n, v] of cuts.reverse()) t = t.slice(0, i) + ` ${v} ` + t.slice(i + n);
+  return t;
+}
+function parseVoice(text) {
+  const pr = protectNames(String(text).normalize('NFKC'));
+  // 漢数字は区切り・「個」・末尾の直前にあるものだけ数として扱う(商品名の「一番」などは残す)
+  const t = kanaNums(pr.t.replace(/[〇零一二三四五六七八九十百千]+(?=\s*(?:個|ケース|本|つ|枚|袋|[、,。.\s]|$))/g, kanjiNum));
+  const out = [];
+  // 数のすぐ後に英字が続くもの(2L・500ml など)は商品名の一部とみなす
+  const re = /\d+(?![\d.]*[a-zA-Z%])/g;
+  let last = 0, mt;
+  const clean = s => pr.back(s.replace(/^[\s、,。.・]*(?:個|ケース|本|つ|枚|袋|こ(?=[\s、,。.]|$))?[\s、,。.・]*/, '').trim());
+  while ((mt = re.exec(t))) {
+    const name = clean(t.slice(last, mt.index));
+    const after = t.slice(re.lastIndex);
+    const cs = /^\s*ケース/.test(after);
+    last = re.lastIndex;
+    if (name) out.push({ name, q: Number(mt[0]), cs });
+  }
+  const rest = clean(t.slice(last));
+  if (rest) out.push({ name: rest, q: null });
+  return out;
+}
+function lev(a, b) {
+  const d = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]; d[0] = i;
+    for (let j = 1; j <= b.length; j++) { const tmp = d[j]; d[j] = Math.min(d[j] + 1, d[j - 1] + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = tmp; }
+  }
+  return d[b.length];
+}
+function scoreKey(k, s) {
+  if (!k || !s) return 0;
+  if (k === s) return 100;
+  if (s.length >= 2 && k.startsWith(s)) return 88;
+  if (s.length >= 2 && k.includes(s)) return 78;
+  if (k.length >= 2 && s.includes(k)) return 72;
+  const sim = 1 - lev(k, s) / Math.max(k.length, s.length);
+  const pre = 1 - lev(k.slice(0, s.length), s) / s.length;   // 言い切らなかった場合(略称)
+  return Math.max(sim >= 0.5 ? 65 * sim : 0, s.length >= 2 && pre >= 0.6 ? 60 * pre : 0);
+}
+function matchProduct(said) {
+  const s = kana(said);
+  const sc = S.products.map(p => ({ p, v: Math.max(...[p.name, ...String(p.yomi || '').split(/[、,，\s]+/)].map(k => scoreKey(kana(k), s))) }))
+    .filter(x => x.v > 0).sort((a, b) => b.v - a.v);
+  if (!sc.length) return { cands: [] };
+  const top = sc.filter(x => x.v >= sc[0].v - 3);
+  return top.length === 1 ? { p: top[0].p } : { cands: top.slice(0, 4).map(x => x.p) };
+}
+function learnYomi(p, said) {
+  const w = String(said || '').replace(/\s+/g, ''), k = kana(w);
+  if (!k) return false;
+  const list = String(p.yomi || '').split(/[、,，\s]+/).filter(Boolean);
+  if (kana(p.name) === k || list.some(x => kana(x) === k)) return false;
+  list.push(w); p.yomi = list.join('、'); save();
+  return true;
+}
+// 合う商品が無いとき、文字の近さで一番近い商品を予想する(近いものが無ければ null)
+function guessProduct(said) {
+  const s = kana(said); if (!s) return null;
+  let best = null, bv = 0;
+  S.products.forEach(p => [p.name, ...String(p.yomi || '').split(/[、,，\s]+/)].forEach(k => {
+    k = kana(k); if (!k) return;
+    const sim = 1 - lev(k, s) / Math.max(k.length, s.length);
+    const pre = s.length >= 2 ? 1 - lev(k.slice(0, s.length), s) / s.length : 0;
+    const v = Math.max(sim, pre * 0.9);
+    if (v > bv) { bv = v; best = p; }
+  }));
+  return bv >= 0.34 ? best : null;
+}
+// guess=true は予想で入れた欄(保存前に確認するため黄色で残す)。予想前の値は data-prev に控える
+function setSale(root, pid, q, guess = false) {
+  const i = root.querySelector(`[data-sale="${pid}"]`); if (!i) return;
+  if (guess && !i.classList.contains('guess')) i.dataset.prev = i.value;
+  if (!guess) delete i.dataset.prev;
+  i.value = q; i.classList.toggle('guess', guess);
+  i.classList.remove('vset'); void i.offsetWidth; i.classList.add('vset');
+}
+function unguess(root, pid) {
+  const i = root.querySelector(`[data-sale="${pid}"]`); if (!i || !i.classList.contains('guess')) return;
+  i.value = i.dataset.prev ?? ''; delete i.dataset.prev; i.classList.remove('guess');
+}
+function applyVoice(text, root) {
+  const log = $('#v-log'); if (!log) return;
+  const items = parseVoice(text);
+  if (!items.length) { log.innerHTML = ''; return; }
+  const got = new Map(), guessed = new Map(), msgs = [];
+  items.forEach(it => {
+    if (it.q == null) { msgs.push(`<span class="tag t-warn">「${esc(it.name)}」の数が聞き取れません</span>`); return; }
+    const m = matchProduct(it.name);
+    if (m.p) { got.set(m.p.id, it.cs ? it.q * m.p.caseQty : it.q); return; }
+    const said = esc(it.name.replace(/\s+/g, '')), cs = it.cs ? 1 : 0;
+    const g = !m.cands.length && guessProduct(it.name);
+    if (g) {
+      guessed.set(g.id, it.cs ? it.q * g.caseQty : it.q);
+      msgs.push(`<span class="tag t-warn">△「${said}」${it.q}${it.cs ? 'ケース' : ''} → 予想:<select data-learn="${said}" data-q="${it.q}" data-cs="${cs}" data-was="${g.id}">${S.products.map(p => `<option value="${p.id}"${p === g ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}<option value="-">(入れない)</option></select><button data-ok="${g.id}" data-said="${said}">合ってる</button></span>`);
+      return;
+    }
+    if (!m.cands.length) { msgs.push(`<span class="tag t-ng">「${said}」${it.q}${it.cs ? 'ケース' : ''} はどれ? <select data-learn="${said}" data-q="${it.q}" data-cs="${cs}"><option value="">商品を選ぶ…</option>${S.products.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')}</select></span>`); return; }
+    msgs.push(`<span class="tag t-warn">「${said}」${it.q}${it.cs ? 'ケース' : ''} はどれ? ${m.cands.map(p => `<button data-pick="${p.id}" data-said="${said}" data-q="${it.q}" data-cs="${cs}">${esc(p.name)}</button>`).join(' ')}</span>`);
+  });
+  guessed.forEach((q, pid) => { if (!got.has(pid)) setSale(root, pid, q, true); });
+  got.forEach((q, pid) => setSale(root, pid, q));
+  log.innerHTML = [...got].map(([pid, q]) => `<span class="tag t-ok">✓ ${esc(prod(pid).name)} ${q}</span>`).join('') + msgs.join('');
+}
+// 候補のうち「合う商品+数」が一番多く読めるものを選ぶ(同点なら認識側の第1候補)
+function pickAlt(r) {
+  let best = r[0].transcript, bv = -Infinity;
+  for (let i = 0; i < r.length; i++) {
+    const v = parseVoice(r[i].transcript).reduce((a, it) => a + (it.q != null && matchProduct(it.name).p ? 2 : -1), 0);
+    if (v > bv) { bv = v; best = r[i].transcript; }
+  }
+  return best;
+}
+function startVoice(root) {
+  try {
+    rec = new SR(); rec.lang = 'ja-JP'; rec.interimResults = true; rec.continuous = true; rec.maxAlternatives = 5;
+  } catch (e) { rec = null; toast('音声認識を開始できませんでした'); return; }
+  const btn = $('#v-mic'), box = $('#v-text');
+  btn.classList.add('on'); btn.textContent = '■ 止める';
+  // 毎回それまでの全文を解析し直す(同じ商品は後の数で上書きなので、何度反映しても結果は同じ)
+  rec.onresult = e => {
+    let fin = '', mid = '';
+    for (const r of e.results) (r.isFinal ? (fin += pickAlt(r) + ' ') : (mid += r[0].transcript));
+    box.value = (fin + mid).trim();
+    if (fin) applyVoice(fin, root);
+  };
+  rec.onerror = e => {
+    if (e.error === 'no-speech' || e.error === 'aborted') return;
+    toast(e.error === 'not-allowed' || e.error === 'service-not-allowed' ? 'マイクの使用が許可されていません(設定で許可してください)' : `音声認識エラー: ${e.error}`);
+  };
+  rec.onend = () => {
+    rec = null;
+    if (btn.isConnected) { btn.classList.remove('on'); btn.textContent = '🎤 話して入力'; applyVoice(box.value, root); }
+  };
+  rec.start();
+}
+function stopVoice() { if (rec) rec.stop(); }
+
+// ---- 販売入力 ----
+function rSales() {
+  const m = $('#main');
+  if (!S.products.length) { m.innerHTML = noProducts(); return; }
+  const day = S.sales[salesDate] || {};
+  const ds = salesDates();
+  const recent = ds.slice(0, 14);
+  m.innerHTML = `
+  <div class="card">
+    <div class="row" style="justify-content:space-between">
+      <div class="row">
+        <label class="f">販売日<input type="date" id="s-date" value="${salesDate}"></label>
+        <button class="b" id="s-prev">◀ 前日</button><button class="b" id="s-next">翌日 ▶</button>
+        ${S.sales[salesDate] ? '<span class="tag t-ok">入力済み</span>' : '<span class="tag t-pri">未入力</span>'}
+      </div>
+      <button class="b go" id="s-save">✔ 保存して在庫から引く</button>
+    </div>
+    <p class="hint">個数で入力。Enterで次の商品へ移動。保存すると販売数ぶん在庫が減ります(入力済みの日を修正した場合は差分だけ反映)。</p>
+    <div class="voice">
+      <div class="row">
+        ${SR ? '<button class="mic" id="v-mic">🎤 話して入力</button>' : ''}
+        <input id="v-text" style="flex:1;min-width:200px" placeholder="例:インカ 50、アンチョビ 20" enterkeyhint="done">
+        <button class="b" id="v-apply">反映</button>
+      </div>
+      <p class="hint" style="margin-top:6px">「商品名 数」を続けて話すと、その商品の欄に入ります(同じ商品は後の数で上書き。「2ケース」はケース入数で個数に換算)。数のあとに<b>「個」</b>を付けて「むんぽ 2個」と言うと、数が名前にくっつきにくくなります。${SR ? '' : 'この端末では🎤が使えないため、キーボードのマイクで上の欄に話してから「反映」を押してください。'}合わなかったときは出てくる候補から商品を選ぶと、その言い方を<b>呼び名</b>として覚え、次からはそのまま入ります(呼び名は「商品・在庫」で確認・修正できます)。</p>
+      <div class="vlog" id="v-log"></div>
+    </div>
+    <div class="tbl-wrap"><table>
+      <thead><tr><th>商品</th><th class="r">現在庫</th><th class="r">平均/日</th><th class="c in">✏ 販売数(個)</th></tr></thead>
+      <tbody>${S.products.map(p => `<tr>
+        <td><b>${esc(p.name)}</b></td>
+        <td class="r">${fmt(p.stock, 0)}</td>
+        <td class="r">${fmt(avgDaily(p.id))}</td>
+        <td class="c in"><input type="number" min="0" class="num" data-nav data-sale="${p.id}" inputmode="numeric" value="${day[p.id] ?? ''}" placeholder="0" style="font-size:20px;font-weight:700;width:120px"></td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>
+  <div class="card">
+    <h2>直近の販売実績</h2>
+    ${recent.length ? `<div class="tbl-wrap"><table class="sales-grid">
+      <thead><tr><th>商品</th>${recent.map(d => `<th class="r">${md(d)}</th>`).join('')}<th class="r">平均</th></tr></thead>
+      <tbody>${S.products.map(p => `<tr><td>${esc(p.name)}</td>${recent.map(d => `<td class="r cell" data-day="${d}">${S.sales[d][p.id] ?? '<span class="muted">0</span>'}</td>`).join('')}<td class="r"><b>${fmt(avgDaily(p.id))}</b></td></tr>`).join('')}</tbody>
+    </table></div><p class="hint">日付の列をクリックするとその日の入力を修正できます。平均は直近${S.settings.avgDays}日分(設定で変更可)。</p>
+    <button class="b sm d" id="s-del" ${S.sales[salesDate] ? '' : 'disabled'}>${md(salesDate)} の入力を削除</button>`
+    : '<p class="muted">まだ入力がありません。</p>'}
+  </div>`;
+
+  const go = d => { salesDate = d; render(); };
+  $('#s-date').onchange = e => e.target.value && go(e.target.value);
+  $('#s-prev').onclick = () => go(addDays(salesDate, -1));
+  $('#s-next').onclick = () => go(addDays(salesDate, 1));
+  m.querySelectorAll('[data-day]').forEach(c => c.onclick = () => go(c.dataset.day));
+  enterNav(m);
+  const first = m.querySelector('[data-sale]'); if (first) first.focus();
+  // 最後の欄で Enter → 保存
+  const ins = m.querySelectorAll('[data-sale]');
+  ins[ins.length - 1].addEventListener('keydown', e => { if (e.key === 'Enter') $('#s-save').click(); });
+  $('#s-save').onclick = async () => {
+    const gs = [...m.querySelectorAll('input.guess')];
+    if (gs.length && !await ask(`予想で入れた商品が ${gs.length} 件あります(黄色の欄):
+${gs.map(i => prod(i.dataset.sale).name + ' ' + i.value).join('、')}
+このまま保存しますか?`, '保存する')) { gs[0].focus(); return; }
+    const old = S.sales[salesDate] || {};
+    const nw = {};
+    ins.forEach(i => { if (i.value !== '') nw[i.dataset.sale] = Math.max(0, num(i.value)); });
+    S.products.forEach(p => { p.stock -= num(nw[p.id]) - num(old[p.id]); });
+    S.sales[salesDate] = nw;
+    save(); draft = null;
+    toast(`${md(salesDate)} の販売数を保存しました`);
+    salesDate = addDays(salesDate, 1);
+    render();
+  };
+  // 音声入力
+  const vApply = () => applyVoice($('#v-text').value, m);
+  $('#v-apply').onclick = vApply;
+  $('#v-text').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); vApply(); } });
+  if ($('#v-mic')) $('#v-mic').onclick = () => rec ? stopVoice() : startVoice(m);
+  // 合わなかった言い方は、選んだ商品の呼び名として覚える(次からはそのまま入る)
+  const pick = (el, pid, said) => {
+    if (el.dataset.was) unguess(m, el.dataset.was);
+    if (pid === '-') { el.closest('.tag').remove(); return; }
+    const p = prod(pid), q = num(el.dataset.q) * (el.dataset.cs === '1' ? p.caseQty : 1);
+    setSale(m, pid, q); el.closest('.tag').remove();
+    const learned = learnYomi(p, said);
+    toast(`${p.name} に ${q} を入れました${learned ? `(次から「${said}」で入ります)` : ''}`);
+  };
+  $('#v-log').onclick = e => {
+    const b = e.target.closest('[data-pick]'); if (b) return pick(b, b.dataset.pick, b.dataset.said);
+    const ok = e.target.closest('[data-ok]'); if (!ok) return;
+    const p = prod(ok.dataset.ok), i = m.querySelector(`[data-sale="${p.id}"]`);
+    if (i) { i.classList.remove('guess'); delete i.dataset.prev; }
+    ok.closest('.tag').remove();
+    toast(`${p.name} で確定しました${learnYomi(p, ok.dataset.said) ? `(次から「${ok.dataset.said}」で入ります)` : ''}`);
+  };
+  $('#v-log').onchange = e => { const sl = e.target.closest('[data-learn]'); if (sl && sl.value) pick(sl, sl.value, sl.dataset.learn); };
+  if ($('#s-del')) $('#s-del').onclick = async () => {
+    if (!await ask(`${md(salesDate)} の販売入力を削除し、在庫を戻します。よろしいですか?`, '削除', true)) return;
+    const old = S.sales[salesDate] || {};
+    S.products.forEach(p => { p.stock += num(old[p.id]); });
+    delete S.sales[salesDate]; save(); draft = null; render();
+  };
+}
+
+// ---- 商品・在庫 ----
+// ---- フォーマット(商品セットのひな形)----
+// 保存したファイルをまたいで使えるよう、ブラウザ内に別枠で持つ(保存ファイルにも同梱する)
+const FMT_KEY = KEY + ':formats';
+function loadFormats() { try { return JSON.parse(localStorage.getItem(FMT_KEY)) || []; } catch (e) { return []; } }
+function saveFormats(list) { try { localStorage.setItem(FMT_KEY, JSON.stringify(list)); } catch (e) { toast('フォーマットを保存できませんでした'); } }
+function mergeFormats(list) {
+  if (!Array.isArray(list)) return;
+  const cur = loadFormats();
+  list.forEach(f => { if (!cur.some(c => c.id === f.id)) cur.push(f); });
+  saveFormats(cur);
+}
+// フォーマットの商品を追加(同じ名前の商品があれば飛ばす)
+function applyFormat(id) {
+  const f = loadFormats().find(x => x.id === id); if (!f) return;
+  let n = 0;
+  f.items.forEach(it => {
+    if (S.products.some(p => p.name === it.name)) return;
+    S.products.push({ id: uid(), name: it.name, caseQty: it.caseQty, conv: it.conv, stock: 0, ...(it.yomi ? { yomi: it.yomi } : {}), ...(it.targetDays != null ? { targetDays: it.targetDays } : {}) });
+    n++;
+  });
+  save(); draft = null; render();
+  toast(n ? `「${f.name}」から ${n} 品目を追加しました${n < f.items.length ? `(${f.items.length - n} 品目は登録済みのため省略)` : ''}` : 'すべて登録済みです');
+}
+function formatButtons() {
+  const fs = loadFormats();
+  return fs.length ? fs.map(f => `<button class="b" data-fmt="${f.id}" title="${esc(f.items.map(i => i.name).join('、'))}">＋ ${esc(f.name)}(${f.items.length}品目)</button>`).join(' ') : '';
+}
+function bindFormatButtons(root) { root.querySelectorAll('[data-fmt]').forEach(b => b.onclick = () => applyFormat(b.dataset.fmt)); }
+
+// ---- 商品・在庫 ----
+function rItems() {
+  const m = $('#main');
+  const fs = loadFormats();
+  m.innerHTML = `
+  <div class="card">
+    <h2>商品を追加</h2>
+    <div class="row">
+      <label class="f" style="flex:1;min-width:180px">商品名<input id="n-name" class="wide" placeholder="例:天然水 2L"></label>
+      <label class="f">1ケースの入数(個)<input type="number" id="n-case" class="num" min="1" value="12"></label>
+      <label class="f">1ケースの換算<input type="number" id="n-conv" class="num" min="0" step="0.01" value="1"></label>
+      <label class="f">現在庫(個)<input type="number" id="n-stock" class="num" min="0" value="0"></label>
+      <button class="b p" id="n-add">＋ 追加</button>
+    </div>
+    <p class="hint">換算 = 1ケースがトラックで何単位ぶんになるか(例:大きい箱は 2、小さい箱は 0.5)。</p>
+  </div>
+  <div class="card">
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <h2 style="margin:0">フォーマット(商品セット)</h2>
+      <button class="b" id="fmt-save" ${S.products.length ? '' : 'disabled'}>💾 今の商品をフォーマットとして保存</button>
+    </div>
+    ${fs.length ? `<div class="row" style="gap:8px;align-items:center">${fs.map(f => `
+      <span class="fmt"><button class="b" data-fmt="${f.id}" title="${esc(f.items.map(i => i.name).join('、'))}">＋ ${esc(f.name)}<span class="muted">(${f.items.length}品目)</span></button><button class="b sm d" data-fmt-del="${f.id}" title="このフォーマットを削除">×</button></span>`).join('')}</div>
+      <p class="hint">ボタンを押すとその商品一式(商品名・入数・換算・目標日数)を追加します。登録済みの名前の商品は追加しません。在庫は 0 で入ります。</p>`
+    : '<p class="muted">まだありません。商品を登録したら「今の商品をフォーマットとして保存」を押すと、次からボタン一つで同じ商品を追加できます。</p>'}
+  </div>
+  <div class="card">
+    <h2>商品一覧(${S.products.length}品目)</h2>
+    ${S.products.length ? `<div class="tbl-wrap"><table>
+      <thead><tr><th></th><th>商品名</th><th title="音声入力で使う言い方。複数は「、」区切り">呼び名(音声)</th><th class="r">入数/ケース</th><th class="r">換算/ケース</th><th class="r">現在庫(個)</th><th class="r">ケース換算</th><th class="r">平均/日</th><th class="r">在庫日数</th><th></th></tr></thead>
+      <tbody id="p-body">${S.products.map(p => {
+        const a = avgDaily(p.id), d = a > 0 ? p.stock / a : null;
+        return `<tr data-row="${p.id}">
+        <td class="grip" title="ドラッグで並べ替え">⠿</td>
+        <td><input data-f="name" data-id="${p.id}" value="${esc(p.name)}" style="min-width:160px"></td>
+        <td><input data-f="yomi" data-id="${p.id}" value="${esc(p.yomi || '')}" placeholder="例:いんか、インカ" style="width:150px"></td>
+        <td class="r"><input type="number" class="num" min="1" data-nav data-f="caseQty" data-id="${p.id}" value="${p.caseQty}"></td>
+        <td class="r"><input type="number" class="num" min="0" step="0.01" data-nav data-f="conv" data-id="${p.id}" value="${cv(p.conv)}"></td>
+        <td class="r"><input type="number" class="num" data-nav data-f="stock" data-id="${p.id}" value="${p.stock}"></td>
+        <td class="r muted">${stockText(p) || '—'}</td>
+        <td class="r">${fmt(a)}</td>
+        <td class="r">${d == null ? '—' : `<span class="tag ${d < 2 ? 't-ng' : d < 4 ? 't-warn' : 't-ok'}">${fmt(d)}日</span>`}</td>
+        <td><button class="b sm d" data-del="${p.id}">削除</button></td></tr>`;
+      }).join('')}</tbody>
+    </table></div><p class="hint">左端の ⠿ をドラッグすると並べ替えられます(販売入力の並び順になります)。表の数値はそのまま書き換えられます(棚卸の結果を「現在庫」に入力)。</p>`
+    : `<p class="muted">商品を追加してください。 <button class="b sm" onclick="loadSample()">サンプルデータで試す</button></p>`}
+  </div>`;
+
+  const add = () => {
+    const name = $('#n-name').value.trim();
+    if (!name) { toast('商品名を入力してください'); $('#n-name').focus(); return; }
+    S.products.push({ id: uid(), name, caseQty: Math.max(1, Math.round(num($('#n-case').value, 1))), conv: r2(Math.max(0, num($('#n-conv').value, 1))), stock: num($('#n-stock').value) });
+    save(); draft = null; toast(`「${name}」を追加しました`); render(); $('#n-name').focus();
+  };
+  $('#n-add').onclick = add;
+  ['#n-name', '#n-case', '#n-conv', '#n-stock'].forEach(s => $(s).addEventListener('keydown', e => { if (e.key === 'Enter') add(); }));
+  m.querySelectorAll('[data-f]').forEach(i => i.onchange = () => {
+    const p = prod(i.dataset.id), f = i.dataset.f;
+    if (f === 'name') { if (!i.value.trim()) return render(); p.name = i.value.trim(); }
+    else if (f === 'yomi') { if (i.value.trim()) p.yomi = i.value.trim(); else delete p.yomi; }
+    else if (f === 'caseQty') p.caseQty = Math.max(1, Math.round(num(i.value, 1)));
+    else if (f === 'conv') p.conv = r2(Math.max(0, num(i.value)));
+    else p.stock = num(i.value);
+    save(); draft = null; render();
+  });
+  enterNav(m);
+  m.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+    const p = prod(b.dataset.del);
+    if (!await ask(`「${p.name}」を削除しますか?\n(販売実績のこの商品分も集計から外れます)`, '削除', true)) return;
+    S.products = S.products.filter(x => x !== p);
+    Object.values(S.sales).forEach(d => delete d[p.id]);
+    save(); draft = null; render();
+  });
+
+  // フォーマット
+  bindFormatButtons(m);
+  $('#fmt-save').onclick = async () => {
+    const name = await askText(`今の ${S.products.length} 品目をフォーマットとして保存します。名前を入力してください`, `商品セット${loadFormats().length + 1}`);
+    if (!name) return;
+    const list = loadFormats();
+    const items = S.products.map(p => ({ name: p.name, caseQty: p.caseQty, conv: p.conv, ...(p.yomi ? { yomi: p.yomi } : {}), ...(p.targetDays != null ? { targetDays: p.targetDays } : {}) }));
+    const same = list.find(f => f.name === name);
+    if (same) {
+      if (!await ask(`「${name}」はすでにあります。今の商品で上書きしますか?`, '上書き')) return;
+      same.items = items; same.at = Date.now();
+    } else list.push({ id: uid(), name, items, at: Date.now() });
+    saveFormats(list); render(); toast(`フォーマット「${name}」を保存しました`);
+  };
+  m.querySelectorAll('[data-fmt-del]').forEach(b => b.onclick = async () => {
+    const list = loadFormats(), f = list.find(x => x.id === b.dataset.fmtDel);
+    if (!await ask(`フォーマット「${f.name}」を削除しますか?\n(登録済みの商品はそのまま残ります)`, '削除', true)) return;
+    saveFormats(list.filter(x => x !== f)); render();
+  });
+
+  // ドラッグで並べ替え(マウス・タッチ両対応)
+  const body = $('#p-body');
+  // 行を動かすとポインタのキャプチャが外れるため、移動・離す操作は window で受ける
+  if (body) body.querySelectorAll('.grip').forEach(g => g.onpointerdown = e => {
+    e.preventDefault();
+    const row = g.closest('tr');
+    row.classList.add('dragging');
+    const move = ev => {
+      const rows = [...body.children].filter(r => r !== row);
+      const next = rows.find(r => { const b = r.getBoundingClientRect(); return ev.clientY < b.top + b.height / 2; });
+      if (next) { if (row.nextElementSibling !== next) body.insertBefore(row, next); }
+      else if (body.lastElementChild !== row) body.appendChild(row);
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      row.classList.remove('dragging');
+      const ids = [...body.children].map(r => r.dataset.row);
+      if (ids.join() === S.products.map(p => p.id).join()) return;
+      S.products.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id));
+      save(); render();
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+
+// ---- 発注履歴 ----
+function rHistory() {
+  const m = $('#main');
+  m.innerHTML = `<div class="card"><h2>発注履歴</h2>
+  ${S.orders.length ? S.orders.map(o => `
+    <div style="border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div><span class="big">${md(o.date)}</span> <span class="muted">次回予定 ${md(o.nextDate)}</span></div>
+        <div><span class="tag ${o.total >= S.settings.truckMin && o.total <= S.settings.truckMax ? 't-ok' : 't-warn'}">換算 ${cv(o.total)}</span>
+        <button class="b sm d" data-undo="${o.id}">取り消し</button></div>
+      </div>
+      <div class="tbl-wrap"><table style="margin-top:8px"><thead><tr><th>商品</th><th class="r">ケース</th><th class="r">個数</th><th class="r">換算</th></tr></thead>
+      <tbody>${o.items.map(it => `<tr><td>${esc(prod(it.pid)?.name ?? it.name)}</td><td class="r">${it.cases}</td><td class="r">${it.pieces}</td><td class="r">${cv(it.cases * it.conv)}</td></tr>`).join('')}</tbody></table></div>
+    </div>`).join('') : '<p class="muted">まだ発注がありません。</p>'}
+  </div>`;
+  m.querySelectorAll('[data-undo]').forEach(b => b.onclick = async () => {
+    const o = S.orders.find(x => x.id === b.dataset.undo);
+    if (!await ask(`${md(o.date)} の発注を取り消し、加算した在庫を差し引きます。よろしいですか?`, '取り消す', true)) return;
+    o.items.forEach(it => { const p = prod(it.pid); if (p) p.stock -= it.pieces; });
+    S.orders = S.orders.filter(x => x !== o); save(); draft = null; render();
+  });
+}
+
+// ---- 設定 ----
+function rSettings() {
+  const st = S.settings;
+  $('#main').innerHTML = `
+  <div class="card"><h2>計算の設定</h2>
+    <div class="row">
+      <label class="f">平均に使う日数<input type="number" class="num" min="1" id="c-avg" value="${st.avgDays}"></label>
+      <label class="f">納品までの日数<input type="number" class="num" min="0" id="c-lead" value="${st.leadDays}"></label>
+      <label class="f">安全在庫(日数)<input type="number" class="num" min="0" step="0.5" id="c-safe" value="${st.safetyDays}"></label>
+    </div>
+    <p class="hint">平均:販売入力のある直近の日を指定日数ぶん使います。 納品までの日数:発注してから届くまで(当日なら0)。 安全在庫:売れ行きのブレに備えて余分に持つ日数。</p>
+  </div>
+  <div class="card"><h2>トラック積載の目標</h2>
+    <div class="row">
+      <label class="f">換算合計の下限<input type="number" class="num" min="0" step="0.5" id="c-min" value="${st.truckMin}"></label>
+      <label class="f">換算合計の上限<input type="number" class="num" min="0" step="0.5" id="c-max" value="${st.truckMax}"></label>
+    </div>
+  </div>
+  <div class="card"><h2>データ</h2>
+    <p class="hint" style="margin-bottom:12px">データはこのブラウザ内に自動保存されます。別のPCへ移す・バックアップするときは書き出してください。</p>
+    <div class="row">
+      <button class="b" id="c-exp">バックアップを書き出す(JSON)</button>
+      <label class="b" style="cursor:pointer">バックアップを読み込む<input type="file" id="c-imp" accept=".json,application/json" hidden></label>
+      <button class="b" id="c-csv">販売実績をCSVで書き出す</button>
+      <button class="b d" id="c-clear">全データを消去</button>
+    </div>
+  </div>`;
+  const set = (id, k, mn, int) => $(id).onchange = e => { let v = Math.max(mn, num(e.target.value)); if (int) v = Math.round(v); S.settings[k] = v; save(); draft = null; toast('保存しました'); };
+  set('#c-avg', 'avgDays', 1, true); set('#c-lead', 'leadDays', 0); set('#c-safe', 'safetyDays', 0);
+  set('#c-min', 'truckMin', 0); set('#c-max', 'truckMax', 0);
+  const dl = (name, text, type) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); };
+  $('#c-exp').onclick = () => dl(`発注アシスタント_${today()}.json`, JSON.stringify(S, null, 2), 'application/json');
+  $('#c-csv').onclick = () => {
+    const ds = Object.keys(S.sales).sort();
+    const lines = [['日付', ...S.products.map(p => p.name)], ...ds.map(d => [d, ...S.products.map(p => S.sales[d][p.id] ?? 0)])];
+    dl(`販売実績_${today()}.csv`, '﻿' + lines.map(l => l.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\r\n'), 'text/csv');
+  };
+  $('#c-imp').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!Array.isArray(d.products)) throw 0;
+      if (!await ask('現在のデータを読み込んだバックアップで置き換えます。よろしいですか?', '置き換える', true)) return;
+      S = { ...structuredClone(DEFAULT), ...d, settings: { ...DEFAULT.settings, ...d.settings } }; save(); draft = null; toast('読み込みました'); render();
+    } catch (_) { toast('読み込めないファイルです'); }
+  };
+  $('#c-clear').onclick = async () => {
+    if (!await ask('すべての商品・販売実績・発注履歴を消去します。元に戻せません。\n(先にバックアップの書き出しをおすすめします)', '消去する', true)) return;
+    S = structuredClone(DEFAULT); save(); draft = null; render();
+  };
+}
+
+// ---- ファイル保存 ----
+function fileBar() {
+  $('#f-name').textContent = doc.name ? `📄 ${doc.name}` : '新規(未保存)';
+  $('#f-name').title = doc.savedAt ? `最終保存 ${new Date(doc.savedAt).toLocaleString('ja-JP')}` : '';
+  $('#f-dirty').hidden = !(dirty && doc.name);
+  document.title = (doc.name ? doc.name.replace(/\.html?$/i, '') + ' - ' : '') + '発注アシスタント';
+}
+// アプリ本体 + 現在のデータ + 開いていた画面 を1つの HTML にする
+function buildFile() {
+  const payload = { docId: doc.id, name: doc.name, savedAt: doc.savedAt, data: S, view: view(), formats: loadFormats() };
+  const json = JSON.stringify(payload).replace(/</g, String.fromCharCode(92) + 'u003c');
+  return PRISTINE.replace(/<script type="application\/json" id="saved-data">[\s\S]*?<\/script>/,
+    () => `<script type="application/json" id="saved-data">${json}<\/script>`);
+}
+async function writeFile(asNew) {
+  const prev = { ...doc };
+  if (!doc.id || asNew) doc.id = uid();
+  doc.savedAt = Date.now();
+  const suggested = (doc.name || `発注_${orderDate}`).replace(/\.html?$/i, '') + '.html';
+  let picked = false;
+  if (window.showSaveFilePicker) {
+    // 保存先を選べる方法。使えない環境(埋め込み表示・権限など)ではダウンロード保存に切り替える
+    try {
+      if (asNew || !fileHandle) {
+        fileHandle = await showSaveFilePicker({ suggestedName: suggested, types: [{ description: '発注データ(HTML)', accept: { 'text/html': ['.html'] } }] });
+      }
+      doc.name = fileHandle.name;
+      const w = await fileHandle.createWritable(); await w.write(buildFile()); await w.close();
+      picked = true;
+    } catch (e) {
+      if (e.name === 'AbortError') { doc = prev; return; }
+      console.warn('showSaveFilePicker failed', e);
+      fileHandle = null;
+    }
+  }
+  try {
+    if (!picked) {
+      const name = await askText('保存する名前を入力してください(ダウンロードフォルダに保存されます)', suggested.replace(/\.html$/, ''));
+      if (!name) throw new DOMException('', 'AbortError');
+      doc.name = name.replace(/\.html?$/i, '') + '.html';
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buildFile()], { type: 'text/html' }));
+      a.download = doc.name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    }
+  } catch (e) {
+    doc = prev;
+    if (e.name !== 'AbortError') toast('保存できませんでした:' + e.message);
+    return;
+  }
+  dirty = false; save(); dirty = false; fileBar();
+  toast(`「${doc.name}」に保存しました。このファイルを開くと今の画面に戻れます`);
+}
+$('#f-save').onclick = () => writeFile(false);
+// ホーム = 発注提案の画面の先頭
+const goHome = () => { tab = 'order'; render(); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+$('#h-home').onclick = goHome; $('#h-title').onclick = goHome;
+// 保存したファイルを読み込む(iPad など、ファイルを直接開けない環境向け)
+$('#f-open').onchange = async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  let payload = null;
+  try {
+    const text = await f.text();
+    const m = text.match(/<script type="application\/json" id="saved-data">([\s\S]*?)<\/script>/);
+    if (m) payload = JSON.parse(m[1]);
+    else { const d = JSON.parse(text); if (Array.isArray(d.products)) payload = { data: d }; }
+  } catch (_) {}
+  if (!payload || !payload.data) { toast('発注アシスタントのファイルではないようです'); return; }
+  if (S.products.length && (!doc.name || dirty) && !await ask(`今の内容は保存されていません。\n「${f.name}」を開くと今の内容は置き換わります。よろしいですか?`, '開く', true)) return;
+  mergeFormats(payload.formats);
+  S = norm(payload.data);
+  doc = { id: payload.docId || uid(), name: payload.name || f.name.replace(/\.json$/i, '.html'), savedAt: payload.savedAt || Date.now() };
+  fileHandle = null; draft = null; mode = 'stock';
+  applyView(payload.view);
+  save(); dirty = false; fileBar(); render(); window.scrollTo(0, 0);
+  toast(`「${doc.name}」を開きました`);
+};
+$('#f-new').onclick = async () => {
+  const unsaved = S.products.length && (!doc.name || dirty);
+  const warn = unsaved ? (doc.name ? `「${doc.name}」に保存していない変更があります。` : '今の内容はまだファイルに保存されていません。') + `
+必要なら先に「名前を付けて保存」してください。
+
+` : '';
+  const l = $('#modal-chk-l'), c = $('#modal-chk');
+  l.hidden = !S.products.length; c.checked = true;
+  $('#modal-chk-t').textContent = '商品の登録(商品名・入数・換算)と設定を引き継ぐ(在庫・販売実績・発注履歴は空にする)';
+  const ok = await ask(warn + '新しいデータを作成します。', '新規作成', unsaved);
+  l.hidden = true;
+  if (!ok) return;
+  const keep = S.products.length && c.checked;
+  const next = structuredClone(DEFAULT);
+  if (keep) {
+    next.products = S.products.map(p => ({ ...p, id: p.id, stock: 0 }));
+    next.settings = { ...S.settings };
+  }
+  S = next; doc = { id: uid(), name: null, savedAt: null }; fileHandle = null;
+  draft = null; mode = 'stock'; orderDate = today(); salesDate = today();
+  tab = keep ? 'items' : 'order';
+  save(); dirty = false; fileBar(); render(); window.scrollTo(0, 0);
+  toast(keep ? '新規作成しました。「商品・在庫」で今の在庫数を入力してください' : '新規作成しました');
+};
+$('#f-saveas').onclick = () => writeFile(true);
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); writeFile(e.shiftKey); }
+});
+window.addEventListener('beforeunload', e => { if (dirty && doc.name) { e.preventDefault(); e.returnValue = ''; } });
+function askText(msg, def) {
+  const i = $('#modal-in'); i.hidden = false; i.value = def;
+  const r = ask(msg, '保存').then(ok => { i.hidden = true; return ok ? i.value.trim() : null; });
+  setTimeout(() => { i.focus(); i.select(); }, 0);
+  i.onkeydown = e => { if (e.key === 'Enter') $('#modal-yes').click(); };
+  return r;
+}
+
+// ---- サンプル ----
+function loadSample() {
+  const P = [['天然水 2L', 6, 1.5, 40, 22], ['緑茶 500ml', 24, 1, 70, 45], ['コーラ 500ml', 24, 1, 55, 30], ['缶コーヒー', 30, 0.8, 90, 38], ['スポーツドリンク 2L', 6, 1.5, 10, 9], ['炭酸水 500ml', 24, 1, 30, 14]];
+  S = structuredClone(DEFAULT);
+  S.products = P.map(([name, caseQty, conv, stock]) => ({ id: uid(), name, caseQty, conv, stock }));
+  for (let i = 7; i >= 1; i--) {
+    const d = addDays(today(), -i); S.sales[d] = {};
+    S.products.forEach((p, k) => { S.sales[d][p.id] = Math.max(0, Math.round(P[k][4] * (0.75 + Math.random() * 0.5))); });
+  }
+  save(); draft = null; toast('サンプルデータを入れました'); goTab('order');
+}
+
+fileBar();
+render();
+if (EMB) {
+  mergeFormats(EMB.formats);
+  try {
+    const l = JSON.parse(localStorage.getItem(lsKey()));
+    if (l && l.at > EMB.savedAt + 1000) {
+      ask(`このファイルには、前回 ${new Date(l.at).toLocaleString('ja-JP')} に編集して保存していない内容があります。
+復元しますか?(キャンセルでファイルの内容のまま)`, '復元する').then(ok => {
+        if (ok) { S = norm(l.data); applyView(l.view); dirty = true; fileBar(); render(); }
+      });
+    }
+  } catch (e) {}
+}
+</script>
+</body>
+</html>
